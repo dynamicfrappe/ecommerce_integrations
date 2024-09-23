@@ -133,6 +133,7 @@ def create_sales_order(shopify_order, setting, company=None):
 				error_log.method = "Create Order"
 				error_log.error = str(ex)
 				error_log.save()
+				frappe.db.commit()
 
 		if shopify_order.get("note"):
 			so.add_comment(text=f"Order Note: {shopify_order.get('note')}")
