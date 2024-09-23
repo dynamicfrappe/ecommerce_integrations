@@ -103,31 +103,31 @@ def create_sales_order(shopify_order, setting, company=None):
 
 		taxes = get_order_taxes(shopify_order, setting, items)
 		try:
+			if not frappe.db.exists("Sales Order" , {ORDER_NUMBER_FIELD:shopify_order.get("name") , ORDER_ID_FIELD: str(shopify_order.get("id"))}):
+				so = frappe.get_doc(
+					{
+						"doctype": "Sales Order",
+						"naming_series": setting.sales_order_series or "SO-Shopify-",
+						ORDER_ID_FIELD: str(shopify_order.get("id")),
+						ORDER_NUMBER_FIELD: shopify_order.get("name"),
+						"customer": customer,
+						"transaction_date": getdate(shopify_order.get("created_at")) or nowdate(),
+						"delivery_date": getdate(shopify_order.get("created_at")) or nowdate(),
+						"company": setting.company,
+						"selling_price_list": get_dummy_price_list(),
+						"ignore_pricing_rule": 1,
+						"items": items,
+						"taxes": taxes,
+						"tax_category": get_dummy_tax_category(),
+					}
+				)
 
-			so = frappe.get_doc(
-				{
-					"doctype": "Sales Order",
-					"naming_series": setting.sales_order_series or "SO-Shopify-",
-					ORDER_ID_FIELD: str(shopify_order.get("id")),
-					ORDER_NUMBER_FIELD: shopify_order.get("name"),
-					"customer": customer,
-					"transaction_date": getdate(shopify_order.get("created_at")) or nowdate(),
-					"delivery_date": getdate(shopify_order.get("created_at")) or nowdate(),
-					"company": setting.company,
-					"selling_price_list": get_dummy_price_list(),
-					"ignore_pricing_rule": 1,
-					"items": items,
-					"taxes": taxes,
-					"tax_category": get_dummy_tax_category(),
-				}
-			)
-
-			if company:
-				so.update({"company": company, "status": "Draft"})
-			so.flags.ignore_mandatory = True
-			so.flags.shopiy_order_json = json.dumps(shopify_order)
-			so.save(ignore_permissions=True)
-			so.submit()
+				if company:
+					so.update({"company": company, "status": "Draft"})
+				so.flags.ignore_mandatory = True
+				so.flags.shopiy_order_json = json.dumps(shopify_order)
+				so.save(ignore_permissions=True)
+				so.submit()
 		except Exception as ex:
 				error_log = frappe.new_doc("Error Log")
 				error_log.method = "Create Order"
