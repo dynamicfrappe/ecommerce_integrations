@@ -69,25 +69,38 @@ def upload_inventory_data_to_shopify(inventory_levels, warehous_map) -> None:
 
 
 def _log_inventory_update_status(inventory_levels) -> None:
-	"""Create log of inventory update."""
-	log_message = "variant_id,location_id,status,failure_reason\n"
+    """Create log of inventory update with error handling."""
+    try:
+        # Prepare log message header
+        log_message = "variant_id,location_id,status,failure_reason\n"
 
-	log_message += "\n".join(
-		f"{d.variant_id},{d.shopify_location_id},{d.status},{d.failure_reason or ''}"
-		for d in inventory_levels
-	)
+        # Add inventory levels to the log message
+        log_message += "\n".join(
+            f"{d.variant_id},{d.shopify_location_id},{d.status},{d.failure_reason or ''}"
+            for d in inventory_levels
+        )
 
-	stats = Counter([d.status for d in inventory_levels])
+        # Calculate statistics
+        stats = Counter([d.status for d in inventory_levels])
+        percent_successful = stats["Success"] / len(inventory_levels)
 
-	percent_successful = stats["Success"] / len(inventory_levels)
+        # Determine status based on the percentage of successful updates
+        if percent_successful == 0:
+            status = "Failed"
+        elif percent_successful < 1:
+            status = "Partial Success"
+        else:
+            status = "Success"
 
-	if percent_successful == 0:
-		status = "Failed"
-	elif percent_successful < 1:
-		status = "Partial Success"
-	else:
-		status = "Success"
+        # Update log message with summary
+        log_message = f"Updated {percent_successful * 100}% items\n\n" + log_message
 
-	log_message = f"Updated {percent_successful * 100}% items\n\n" + log_message
+        # Log success or partial success
+        create_shopify_log(method="update_inventory_on_shopify", status=status, message=log_message)
 
-	create_shopify_log(method="update_inventory_on_shopify", status=status, message=log_message)
+    except Exception as e:
+        # Log the error details with a status of "Error"
+        error_message = f"An error occurred: {str(e)}"
+        create_shopify_log(method="update_inventory_on_shopify", status="Error", message=error_message)
+        # Optionally, raise the exception if you want to propagate it further
+        raise
