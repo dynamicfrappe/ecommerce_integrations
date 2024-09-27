@@ -83,7 +83,7 @@ def get_fulfillment_items(dn_items, fulfillment_items, location_id=None):
 	for dn_item in dn_items:
 		if shopify_item := find_matching_fullfilement_item(dn_item):
 			final_items.append(
-				dn_item.update({"qty": shopify_item.get("quantity"), "warehouse": warehouse})
+				dn_item.update({"qty": shopify_item.get("quantity"), "warehouse": warehouse , "allow_zero_valuation_rate":1})
 			)
 
 	return final_items
