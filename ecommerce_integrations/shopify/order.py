@@ -428,7 +428,7 @@ def sync_old_orders():
 		old_orders_to_dt = old_orders_to
 	
 	shopify_setting.old_orders_from = old_orders_to_dt
-	shopify_setting.old_orders_to = old_orders_to_dt + timedelta(minutes=5)
+	shopify_setting.old_orders_to = old_orders_to_dt + timedelta(minutes=60)
 	shopify_setting.save()
 
 
