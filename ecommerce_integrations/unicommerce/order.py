@@ -42,14 +42,18 @@ def sync_new_orders(client: UnicommerceAPIClient = None, force=False):
 	# check if need to run based on configured sync frequency.
 	# Note: This also updates last_order_sync if function runs.
 	try:
-		if not force and not need_to_run(SETTINGS_DOCTYPE, "order_sync_frequency", "last_order_sync"):
-			return
+		temp = need_to_run(SETTINGS_DOCTYPE, "order_sync_frequency", "last_order_sync")
 	except Exception as ex:
 		error_log = frappe.new_doc("Error Log")
-		error_log.method = "Create Order"
+		error_log.method = "Create new Order"
 		error_log.error = str(ex)
 		error_log.insert(ignore_permissions=True)
 		frappe.db.commit()
+
+		
+		if not force and not temp:
+			return
+	
 
 	if client is None:
 		client = UnicommerceAPIClient()
