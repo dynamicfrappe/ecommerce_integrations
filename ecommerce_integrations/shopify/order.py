@@ -6,6 +6,9 @@ from frappe import _
 from frappe.utils import cint, cstr, flt, get_datetime, getdate, nowdate
 from shopify.collection import PaginatedIterator
 from shopify.resources import Order
+from datetime import timedelta
+from frappe.utils import get_datetime, now_datetime
+
 
 from ecommerce_integrations.shopify.connection import temp_shopify_session
 from ecommerce_integrations.shopify.constants import (
@@ -417,7 +420,10 @@ def sync_old_orders():
 		sync_sales_order(order, request_id=log.name)
 
 	shopify_setting = frappe.get_doc(SETTING_DOCTYPE)
-	shopify_setting.sync_old_orders = 0
+	# shopify_setting.sync_old_orders = 0
+	old_orders_to =  shopify_setting.old_orders_to
+	shopify_setting.old_orders_from = old_orders_to
+	shopify_setting.old_orders_to = old_orders_to + timedelta(minutes=5)
 	shopify_setting.save()
 
 
