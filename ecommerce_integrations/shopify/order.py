@@ -422,8 +422,13 @@ def sync_old_orders():
 	shopify_setting = frappe.get_doc(SETTING_DOCTYPE)
 	# shopify_setting.sync_old_orders = 0
 	old_orders_to =  shopify_setting.old_orders_to
-	shopify_setting.old_orders_from = old_orders_to
-	shopify_setting.old_orders_to = old_orders_to + timedelta(minutes=5)
+	if isinstance(old_orders_to, str):
+		old_orders_to_dt = get_datetime(old_orders_to)
+	else:
+		old_orders_to_dt = old_orders_to
+	
+	shopify_setting.old_orders_from = old_orders_to_dt
+	shopify_setting.old_orders_to = old_orders_to_dt + timedelta(minutes=5)
 	shopify_setting.save()
 
 
