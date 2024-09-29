@@ -31,6 +31,17 @@ from ecommerce_integrations.utils.taxation import get_dummy_tax_category
 
 UnicommerceOrder = NewType("UnicommerceOrder", Dict[str, Any])
 
+def _log_error(method, error_message):
+	"""Helper function to create an error log entry."""
+	try:
+		error_log = frappe.new_doc("Error Log")
+		error_log.method = method
+		error_log.error = error_message
+		error_log.insert(ignore_permissions=True)
+	except Exception as ex:
+		# In case the error logging itself fails, print to console (or handle as needed).
+		print(f"Failed to log error: {ex}")
+
 
 def sync_new_orders(client: UnicommerceAPIClient = None, force=False):
 	"""This is called from a scheduled job and syncs all new orders from last synced time."""
@@ -44,15 +55,13 @@ def sync_new_orders(client: UnicommerceAPIClient = None, force=False):
 	try:
 		temp = need_to_run(SETTINGS_DOCTYPE, "order_sync_frequency", "last_order_sync")
 	except Exception as ex:
-		error_log = frappe.new_doc("Error Log")
-		error_log.method = "Create new Order"
-		error_log.error = str(ex)
-		error_log.insert(ignore_permissions=True)
+		_log_error("Create new Order", str(ex))
 		frappe.db.commit()
+		return
 
-		
-		if not force and not temp:
-			return
+
+	if not force and not temp:
+		return
 	
 
 	if client is None:
@@ -60,16 +69,26 @@ def sync_new_orders(client: UnicommerceAPIClient = None, force=False):
 
 	status = "COMPLETE" if settings.only_sync_completed_orders else None
 
-	new_orders = _get_new_orders(client, status=status)
+	try:
+		new_orders = _get_new_orders(client, status=status)
+	except Exception as ex:
+		_log_error("Fetching New Orders", str(ex))
+		frappe.db.commit()
+		return
 
 	if new_orders is None:
 		return
 
 	for order in new_orders:
-		sales_order = create_order(order, client=client)
+		try:
+			sales_order = create_order(order, client=client)
 
-		if settings.only_sync_completed_orders:
-			_create_sales_invoices(order, sales_order, client)
+			# Sync sales invoices only if settings require completed orders.
+			if settings.only_sync_completed_orders:
+				_create_sales_invoices(order, sales_order, client)
+		except Exception as ex:
+			_log_error(f"Processing Order: {order.get('order_id', 'Unknown Order ID')}", str(ex))
+			frappe.db.commit() 
 
 
 def _get_new_orders(
