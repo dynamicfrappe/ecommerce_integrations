@@ -88,6 +88,6 @@ def _log_inventory_update_status(inventory_levels) -> None:
 	else:
 		status = "Success"
 
-	log_message = f"Updated {percent_successful * 100}% items\nUpdate {stats["Success"]} items from {len(inventory_levels)} items\n" + log_message
+	log_message = f"Updated {percent_successful * 100}% items\nUpdate {stats.get('Success' or 0)} items from {len(inventory_levels)} items\n" + log_message
 
 	create_shopify_log(method="update_inventory_on_shopify", status=status, message=log_message)
